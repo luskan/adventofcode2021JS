@@ -17,7 +17,7 @@ function loadData(file_name) {
 function calculateNumberOfIncreases(input) {
     return _.map(input, (cur, i, arr) =>
         i ? ((cur - arr[i - 1] > 0) ? 1 : 0) : 0)
-        .reduce((previousValue, currentValue) => previousValue + (currentValue == 1 ? 1 : 0))
+        .reduce((previousValue, currentValue) => previousValue + (currentValue === 1 ? 1 : 0))
 }
 
 function calculateNumberOfSlidingWindowIncreases(input) {
@@ -28,21 +28,21 @@ function calculateNumberOfSlidingWindowIncreases(input) {
         .slice(0, input.length - 2)
         .map((cur, i, arr) =>
             i ? ((cur - arr[i - 1] > 0) ? 1 : 0) : 0)
-        .reduce((previousValue, currentValue) => previousValue + (currentValue == 1 ? 1 : 0))
+        .reduce((previousValue, currentValue) => previousValue + (currentValue === 1 ? 1 : 0))
 }
 
-function runDay1() {
+function run() {
     const input = loadData('data.txt')
 
     console.log("Day 1")
 
     let val = calculateNumberOfIncreases(input);
     console.log(`Part 1: ${val}`)
-    assert(val == 1466)
+    assert(val === 1466)
 
     val = calculateNumberOfSlidingWindowIncreases(input)
     console.log(`Part 2: ${val}`)
-    //assert(val == 1466)
+    assert(val === 1491)
 }
 
-module.exports = { runDay1, calculateNumberOfIncreases, loadData, calculateNumberOfSlidingWindowIncreases };
+module.exports = { run, calculateNumberOfIncreases, loadData, calculateNumberOfSlidingWindowIncreases };
