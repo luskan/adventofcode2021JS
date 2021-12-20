@@ -5,7 +5,7 @@ const assert = require('assert')
 
 function loadData(file_name) {
     return fs
-        .readFileSync(path.join(__dirname, './' + file_name), 'utf8')
+        .readFileSync(path.join(__dirname, file_name), 'utf8')
         .toString()
         .trim()
         .split('\n')

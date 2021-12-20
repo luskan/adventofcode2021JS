@@ -2,6 +2,8 @@ var solution = require('./solution');
 const assert = require("assert");
 
 function runTest() {
+    console.log("Run test 4");
+
     let res = solution.calculateWiningBoard(solution.loadData("./data_test.txt"), false)
     assert(res === 4512)
 
