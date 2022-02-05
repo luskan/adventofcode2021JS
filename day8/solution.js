@@ -57,7 +57,7 @@ function calculateOutputValuesSum(input) {
          gggg
         */
 
-        // There are four digit of unique segment lengths, so they are easy to discern:
+        // There are four digits of unique segment lengths, so they are easy to discern:
         // two chars - for digit 1
         // four chars - for digit 4
         // eight chars - for digit 8
