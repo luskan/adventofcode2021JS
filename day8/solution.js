@@ -11,16 +11,17 @@ function loadData(fileName) {
 
 function parseData(data) {
     return data
-        .trim()
         .split('\n')
         .map((line) => {
-            let s1 = line.split(('|'))
-            let arr1 = s1[0].trim().split(' ')//.map((v) => v.split('').sort().join(''))
-            let arr2 = s1[1].trim().split(' ')//.map((v) => v.split('').sort().join(''))
-            return [arr1, arr2]
+            let line_split = line.split('|')
+            return {
+                patterns: line_split[0].trim().split(' '),
+                output: line_split[1].trim().split(' ')
+            }
         })
 }
 
+// Part 1
 function calculateOutputDigitsCount(input) {
     const chars_eight = "fdgacbe"
     const chars_len_eight = chars_eight.length
@@ -37,15 +38,16 @@ function calculateOutputDigitsCount(input) {
     const simple_digits = [chars_len_eight, chars_len_four, chars_len_seven, chars_len_one]
 
     return input.reduce((mem, v) => {
-        return mem + v[1].reduce((mem2, v2) => mem2 + simple_digits.includes(v2.length), 0)
+        return mem + v.output.reduce((mem2, v2) => mem2 + simple_digits.includes(v2.length), 0)
     }, 0)
 }
 
+// Part 2
 function calculateOutputValuesSum(input) {
     return input.reduce((mem, v) => {
 
        /*
-         // Segments (a,b,c,d,e,f,g) in a correct one digit display
+         Segments (a,b,c,d,e,f,g) in a correct one digit display:
          aaaa
         b    c
         b    c
@@ -62,10 +64,10 @@ function calculateOutputValuesSum(input) {
         // three chars - for digit 7
 
         // Below variables (and later similarly named) will hold chars for given digits
-        let one_chars = _.find(v[0], (a) => a.length === 2)
-        let four_chars = _.find(v[0], (a) => a.length === 4)
-        let seven_chars = _.find(v[0], (a) => a.length === 3)
-        let eight_chars = _.find(v[0], (a) => a.length === 7)
+        let one_chars = _.find(v.patterns, (a) => a.length === 2)
+        let four_chars = _.find(v.patterns, (a) => a.length === 4)
+        let seven_chars = _.find(v.patterns, (a) => a.length === 3)
+        let eight_chars = _.find(v.patterns, (a) => a.length === 7)
 
         //
         // Now, lets start classification....
@@ -79,7 +81,7 @@ function calculateOutputValuesSum(input) {
         let six_chars =
             _.reject(
                 // Find those digits which has 6 segments (those are candidates for 0,6,9)
-                _.filter(v[0], (s) => s.length === 6),
+                _.filter(v.patterns, (s) => s.length === 6),
                 // From the three found, reject those which has both segments from one digit segments
                 (c) => _.countBy(c, (s1) => one_chars.includes(s1))[true] === 2 )[0]
 
@@ -94,7 +96,7 @@ function calculateOutputValuesSum(input) {
         let three_chars =
             _.reject(
                 // candidates with 5 segments are digits: 3,2,5
-                _.filter(v[0], (s) => s.length === 5),
+                _.filter(v.patterns, (s) => s.length === 5),
                 // To find 3 we check if after removing known segments a,c,f - only two segments are left
                 (c) => _.countBy(c, (s1) => seg_a===s1||seg_c===s1||seg_f===s1)[true] === 2
             )[0]
@@ -111,10 +113,14 @@ function calculateOutputValuesSum(input) {
         let seg_e = _.reject(eight_chars, (c) => seg_a===c||seg_b===c||seg_c===c||seg_d===c||seg_f===c||seg_g===c )[0]
 
         // Now, when we have all the segments deduced, build the rest of the digits
-        let two_chars = _.find(v[0], (a) => a.length === 5 && _.every(a, (n) => [seg_a, seg_c, seg_d, seg_e, seg_g].includes(n)) )
-        let five_chars = _.find(v[0], (a) => a.length === 5 && _.every(a, (n) => [seg_a, seg_b, seg_d, seg_f, seg_g].includes(n)) )
-        let nine_chars = _.find(v[0], (a) => a.length === 6 && _.every(a, (n) => [seg_a, seg_b, seg_c, seg_d, seg_f, seg_g].includes(n)) )
-        let zero_chars = _.find(v[0], (a) => a.length === 6 && _.every(a, (n) => [seg_a, seg_b, seg_c, seg_e, seg_f, seg_g].includes(n)) )
+        let two_chars = _.find(v.patterns,
+            (a) => a.length === 5 && _.every(a, (n) => [seg_a, seg_c, seg_d, seg_e, seg_g].includes(n)) )
+        let five_chars = _.find(v.patterns,
+            (a) => a.length === 5 && _.every(a, (n) => [seg_a, seg_b, seg_d, seg_f, seg_g].includes(n)) )
+        let nine_chars = _.find(v.patterns,
+            (a) => a.length === 6 && _.every(a, (n) => [seg_a, seg_b, seg_c, seg_d, seg_f, seg_g].includes(n)) )
+        let zero_chars = _.find(v.patterns,
+            (a) => a.length === 6 && _.every(a, (n) => [seg_a, seg_b, seg_c, seg_e, seg_f, seg_g].includes(n)) )
 
         // Now pack all the digits in a map (make the keys sorted)
         let values = {}
@@ -123,7 +129,7 @@ function calculateOutputValuesSum(input) {
             (c) => values[c.split('').sort().join('')] = Object.keys(values).length)
 
         // Now map the visual segments to the deduced above digit segemnts
-        return mem + v[1].reduce((mem2, v2) => {
+        return mem + v.output.reduce((mem2, v2) => {
             let v2s = v2.split('').sort().join('')
             if (!(v2s in values)) {
                 assert(false)
