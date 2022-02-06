@@ -7,6 +7,7 @@ var day6 = require('./day6/solution');
 var day7 = require('./day7/solution');
 var day8 = require('./day8/solution');
 var day9 = require('./day9/solution');
+var day10 = require('./day10/solution');
 
 day1.run()
 day2.run()
@@ -17,3 +18,4 @@ day6.run()
 day7.run()
 day8.run()
 day9.run()
+day10.run()
