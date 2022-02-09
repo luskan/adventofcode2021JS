@@ -94,6 +94,11 @@ function calculateLowerRiskPathCost(nodes) {
     return nodes[nodes.length-1][nodes[0].length-1].costFromStart
 }
 
+/***
+ * Solution uses Dijkstra’s Shortest Path Algorithm
+ * There is a very good explanation here: https://www.youtube.com/watch?v=pVfj6mxhdMw
+ */
+
 function run() {
     console.log("\nDay 15")
 
