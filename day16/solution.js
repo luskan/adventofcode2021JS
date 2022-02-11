@@ -3,10 +3,10 @@ const fs = require("fs");
 const _ = require("underscore");
 const assert = require("assert");
 
-function loadData(fileName, part2) {
+function loadData(fileName) {
     return parseData(fs
         .readFileSync(path.join(__dirname, fileName), "utf-8")
-        .toString(), part2)
+        .toString())
 }
 
 class PacketParser {
