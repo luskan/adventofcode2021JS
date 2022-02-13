@@ -17,11 +17,10 @@ const test_data_1 = `
 function runTest() {
     console.log("Run test 18");
 
-    // part1
-    let res
-
     testNumberTree(solution.loadData('data.txt'))
 
+    // part1
+    let res
     res = solution.calculateMagnitudeOfFinalSum(solution.parseData(test_data_1))
     assert(res === 4140)
 
@@ -29,6 +28,9 @@ function runTest() {
     res = solution.calculateHighestMagnitudeTwoNumbersSum(solution.parseData(test_data_1))
     assert(res === 3993)
 }
+
+//
+//
 
 function testNumberTreeSplit() {
     let test_arr = [
@@ -87,7 +89,7 @@ function testNumberTreeMagnitude() {
         let t1 = new solution.NumberTree()
         t1.parseFromNumberString(num1)
         let t1_mag = t1.magnitude()
-        if (t1_mag != test_mag) {
+        if (t1_mag !== test_mag) {
             console.log(`magnitude test failed: ${index}: ${num1}, was ${t1_mag} expected ${test_mag}`)
             assert(false)
         }
@@ -126,7 +128,7 @@ function testNumberTreeParsing(data) {
         let t1 = new solution.NumberTree()
         t1.parseFromNumberString(num1)
         let t1_v = t1.convertToNumberString()
-        if (num1 != t1_v) {
+        if (num1 !== t1_v) {
             console.log(`parsing test failed: ${index}: expected: ${num1}, got: ${t1_v}`)
             assert(false)
         }
@@ -143,7 +145,7 @@ function testNumberTreeSum() {
     let tn12 = new solution.NumberTree()
     tn12.sumOfTwoNumbers(t1, t2)
     let tn12res = tn12.convertToNumberString()
-    assert(tn12res == "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]")
+    assert(tn12res === "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]")
 
     //
     let test_arr1 = [

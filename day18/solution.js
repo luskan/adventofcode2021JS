@@ -27,6 +27,7 @@ class Node {
 }
 
 /**
+ * Stores snailfish number in a tree based structure, does not use recursion for iterations.
  * Note: next interesting optimization would be a Node object pool, to avoid allocations.
  */
 class NumberTree {
