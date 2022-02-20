@@ -1,23 +1,9 @@
 const path = require('path');
 const fs = require("fs");
-//const StructsMap = goog.require('goog.structs.Map');
-//const googIter = goog.require('goog.iter');
-//const maps = goog.require('goog.collections.maps');
 const _ = require("underscore");
 const assert = require("assert");
 
-
-function loadDataTest() {
-    return parseDataTest("Some\ndata\nfile\n")
-}
-
-function parseDataTest(data) {
-    data.split('\n')
-}
-
 function loadData(fileName) {
-   // loadDataTest()
-
     return parseData(fs
         .readFileSync(path.join(__dirname, fileName), "utf-8")
         .trim()
@@ -34,527 +20,292 @@ function parseData(data) {
         if (m) {
             current_scanner_id = parseInt(m.groups.id, 10)
             scanners[current_scanner_id] = []
-        }
-        else {
+        } else {
             let m = rg_location.exec(line)
             if (m) {
-                if (!(current_scanner_id in scanners)) {
-                    console.log("err!")
-                }
+                assert(current_scanner_id in scanners)
                 scanners[current_scanner_id].push({
                     x: parseInt(m.groups.x, 10),
                     y: parseInt(m.groups.y, 10),
-                    z: parseInt(m.groups.z, 10)})
+                    z: parseInt(m.groups.z, 10)
+                })
             }
         }
         return sc
     }, scanners);
+    _.each(scanners, (scanner) => {
+        sortPointsArray(scanner)
+    })
     return scanners
 }
 
-function distance( v1, v2 ) {
-    let dx = v1.x - v2.x;
-    let dy = v1.y - v2.y;
-    let dz = v1.z - v2.z;
-    return Math.sqrt( dx * dx + dy * dy + dz * dz );
-}
-
-function setPositionRotation(pos_in, pos_out, rot) {
-    let negate = 1
-    switch (rot) {
-        case 4:
-            negate = -1
-        case 0:
-            pos_out.x = pos_in.x * negate
-            pos_out.y = pos_in.y
-            pos_out.z = pos_in.z
-            break;
-        case 5:
-            negate = -1
-        case 1:
-            pos_out.x = pos_in.x * negate
-            pos_out.y = pos_in.z
-            pos_out.z = -pos_in.y
-            break;
-        case 6:
-            negate = -1
-        case 2:
-            pos_out.x = pos_in.x * negate
-            pos_out.y = -pos_in.y
-            pos_out.z = -pos_in.z
-            break;
-        case 7:
-            negate = -1
-        case 3:
-            pos_out.x = pos_in.x * negate
-            pos_out.y = -pos_in.z
-            pos_out.z = pos_in.y
-            break;
-
-        case 12:
-            negate = -1
-        case 8:
-            pos_out.x = pos_in.x
-            pos_out.y = pos_in.y * negate
-            pos_out.z = pos_in.z
-            break;
-        case 13:
-            negate = -1
-        case 9:
-            pos_out.x = pos_in.z
-            pos_out.y = pos_in.y * negate
-            pos_out.z = -pos_in.x
-            break;
-        case 14:
-            negate = -1
-        case 10:
-            pos_out.x = -pos_in.x
-            pos_out.y = pos_in.y * negate
-            pos_out.z = -pos_in.z
-            break;
-        case 15:
-            negate = -1
-        case 11:
-            pos_out.x = -pos_in.z
-            pos_out.y = pos_in.y * negate
-            pos_out.z = pos_in.x
-            break;
-
-        case 20:
-            negate = -1
-        case 16:
-            pos_out.x = pos_in.x
-            pos_out.y = pos_in.y
-            pos_out.z = pos_in.z * negate
-            break;
-        case 21:
-            negate = -1
-        case 17:
-            pos_out.x = pos_in.y
-            pos_out.y = -pos_in.x
-            pos_out.z = pos_in.z * negate
-            break;
-        case 22:
-            negate = -1
-        case 18:
-            pos_out.x = -pos_in.x
-            pos_out.y = -pos_in.y
-            pos_out.z = pos_in.z * negate
-            break;
-        case 23:
-            negate = -1
-        case 19:
-            pos_out.x = -pos_in.y
-            pos_out.y = pos_in.x
-            pos_out.z = pos_in.z * negate
-            break;
-    }
-
+function sortPointsArray(pointsArray) {
+    pointsArray.sort((p1, p2) => {
+        if (p1.x === p2.x) {
+            if (p1.y === p2.y) {
+                if (p1.z === p2.z) {
+                    return true
+                }
+                else {
+                    return p1.z < p2.z
+                }
+            }
+            else {
+                return p1.y < p2.y
+            }
+        }
+        else {
+            return p1.x < p2.x
+        }
+    })
 }
 
 let position_variant_indexes =
-    [[0, 1, 2],
-        [0, 2, 1],
-        [1, 0, 2],
-        [1, 2, 0],
-        [2, 0, 1],
-        [2, 1, 0]]
+    [[0, 1, 2], // 'xyz'
+        [0, 2, 1], // 'xzy'
+        [1, 0, 2], // 'yxz'
+        [1, 2, 0], // 'yzx'
+        [2, 0, 1], // 'zxy'
+        [2, 1, 0]] // 'zyx'
 
+let index_name = ["x", "y", "z"]
 function setPositionVariant(pos_in, pos_out, rot) {
-    /*
-    'xyz'
-    'xzy'
-    'yxz'
-    'yzx'
-    'zxy'
-    'zyx'
-    */
-    let index_name = ["x", "y", "z"]
     pos_out.x = pos_in[index_name[position_variant_indexes[rot][0]]]
     pos_out.y = pos_in[index_name[position_variant_indexes[rot][1]]]
     pos_out.z = pos_in[index_name[position_variant_indexes[rot][2]]]
 }
 
 let to_negate_indexes =
-    [[0, 0, 0],
+    [
+        [0, 0, 0],
         [0, 0, 1],
         [0, 1, 0],
         [0, 1, 1],
         [1, 0, 0],
         [1, 0, 1],
         [1, 1, 0],
-        [1, 1, 1]]
+        [1, 1, 1]
+    ]
 
 function setPositionSignVariant(pos, rot) {
-    /*
-    '1 1 1'
-    '1 1 -1'
-    'yxz'
-    'yzx'
-    'zxy'
-    'zyx'
-    */
-    pos.x *= to_negate_indexes[rot][0] == 1 ? -1 : 1
-    pos.y *= to_negate_indexes[rot][1] == 1 ? -1 : 1
-    pos.z *= to_negate_indexes[rot][2] == 1 ? -1 : 1
+    if (to_negate_indexes[rot][0] === 1)
+        pos.x = -pos.x
+    if (to_negate_indexes[rot][1] === 1)
+        pos.y = -pos.y
+    if (to_negate_indexes[rot][2] === 1)
+        pos.z = -pos.z
 }
 
 function setBeaconsCoordinatesVariant(input, output, rot) {
     _.each(input, (pos, index) => setPositionVariant(pos, output[index], rot))
 }
 
-function setBeaconsCoordinatesSignVariant(output, rot) {
-    _.each(output, (pos) => setPositionSignVariant(pos, rot))
-}
-
-class ArrayValueMap extends Map {
-    constructor() {
-        super();
-    }
-
-    get(key) {
-        if (this.has(key)) {              // If the key is already in the map
-            return super.get(key);        // return its value from superclass.
-        }
-    }
-
-    addToKey(key, value) {
-        if (super.has(key)) {
-            let prevValue = super.get(key)
-            prevValue.add(value)
-            super.set(key, prevValue)
-        }
-        else {
-            let s = new Set()
-            s.add(value)
-            super.set(key, s)
-        }
+function setBeaconsCoordinatesSignVariant(output, size, rot) {
+    for (let n = 0; n < size; ++n) {
+        setPositionSignVariant(output[n], rot)
     }
 }
+
+// Optimization: array used instead of map
+let x_arr = Array.apply(null, Array(4000)).map(function (x, i) { return i; })
+let y_arr = Array.apply(null, Array(4000)).map(function (x, i) { return i; })
+let z_arr = Array.apply(null, Array(4000)).map(function (x, i) { return i; })
+
+x_arr.fill(0)
+y_arr.fill(0)
+z_arr.fill(0)
+
+// Optimization: to avoid x_arr/y_arr/z_arr clearing we maintain inc_arr sentinel which informs if cell
+//               is active for current iteration
+let inc_arr = 0
+
+let beacons_copy = Array.apply(null, Array(30)).map(function () {
+    return {
+        x: 0,
+        y: 0,
+        z: 0
+    };
+})
 
 function findBeaconsUnion(input, scanner_index_1, scanner_index_2, known_scanners, known_beacons) {
-    let beacons_copy = input[scanner_index_2].map(({...ele}) => {return ele})
-
-    let highest_find = -1
-    let highest_find_beacons_copy = []
-    let highest_find_beacons = []
-    let highest_find_vec = null
-    let highest_find_count = 0
+    let scanner_1_beacons = input[scanner_index_1]
+    let v12_x = -1;
+    let v12_y = -1;
+    let v12_z = -1;
+    let match_found = false;
+    let pos_1;
 
     for (let rot1 = 0; rot1 < position_variant_indexes.length; ++rot1) {
         for (let rot2 = 0; rot2 < to_negate_indexes.length; ++rot2) {
             setBeaconsCoordinatesVariant(input[scanner_index_2], beacons_copy, rot1)
-            setBeaconsCoordinatesSignVariant(beacons_copy, rot2)
+            setBeaconsCoordinatesSignVariant(beacons_copy, input[scanner_index_2].length, rot2)
 
-            let off_map = new ArrayValueMap();
+            v12_x = -1;
+            v12_y = -1;
+            v12_z = -1;
+            match_found = false;
+            inc_arr+=100
 
-            for (let b1 = 0; b1 < input[scanner_index_1].length; ++b1) {
-                for (let b2 = 0; b2 < beacons_copy.length; ++b2) {
+            for (let b1 = 0; b1 < scanner_1_beacons.length; ++b1) {
+                for (let b2 = 0; b2 < input[scanner_index_2].length; ++b2) {
+                    pos_1 = scanner_1_beacons[b1]
 
-                    let scanner_1 = _.find(known_scanners, (obj) => obj.id === scanner_index_1)
-                    let pos_1 = {...input[scanner_index_1][b1]}
-                    setPositionVariant(input[scanner_index_1][b1], pos_1, scanner_1.rot.at(-1))
-                    setPositionSignVariant(pos_1, scanner_1.rot_negate.at(-1))
-                    //scanner_1.rot.forEach((index) => setPositionRotation(pos_1, index))
-                    //scanner_1.rot_negate.forEach((index) => setPositionSignVariant(pos_1, index))
+                    v12_x = (pos_1.x - beacons_copy[b2].x) + 2000
+                    v12_y = (pos_1.y - beacons_copy[b2].y) + 2000
+                    v12_z = (pos_1.z - beacons_copy[b2].z) + 2000
 
-                    let v12_x = (pos_1.x - beacons_copy[b2].x)
-                    let v12_y = (pos_1.y - beacons_copy[b2].y)
-                    let v12_z = (pos_1.z - beacons_copy[b2].z)
-                    let vec = {
-                        x: v12_x,
-                        y: v12_y,
-                        z: v12_z
-                    }
-                    //let dist = distance(beacons_copy[b2], input[scanner_index_1][b1])
-                    //vec.x /= dist
-                    //vec.y /= dist
-                    //vec.z /= dist
+                    if (x_arr[v12_x] < inc_arr)
+                        x_arr[v12_x] = inc_arr;
+                    x_arr[v12_x]++
 
-                    /*
-                    let test_x = beacons_copy[b2].x
-                    let test_y = beacons_copy[b2].y
-                    let test_z = beacons_copy[b2].z
-                    if (scanner_index_1 === 1 && scanner_index_2 === 4) {
-                        let arr = []
-                        arr.push(Math.abs(test_x))
-                        arr.push(Math.abs(test_y))
-                        arr.push(Math.abs(test_z))
-                        const corr_x = 459 - (-20)
-                        const corr_y = -707 - (-1133)
-                        const corr_z = 401 - (1061)
+                    if (y_arr[v12_y] < inc_arr)
+                        y_arr[v12_y] = inc_arr;
+                    y_arr[v12_y]++
 
-                        if (test_x === corr_x && test_y === corr_y && test_z === corr_z ||
-                            _.find(arr, Math.abs(corr_x))// || _.find(arr, Math.abs(corr_y)) || _.find(arr, Math.abs(corr_z))
-                        ) {
-                            console.log("")
+                    if (z_arr[v12_z] < inc_arr)
+                        z_arr[v12_z] = inc_arr;
+                    z_arr[v12_z]++
+
+                    if (x_arr[v12_x] >= inc_arr && y_arr[v12_y] >= inc_arr && z_arr[v12_z] >= inc_arr) {
+                        if (x_arr[v12_x] - inc_arr >= 12 && y_arr[v12_y] - inc_arr >= 12 && z_arr[v12_z] - inc_arr >= 12) {
+                            match_found = true
+                            b1 = scanner_1_beacons.length
+                            b2 = input[scanner_index_2].length
                         }
                     }
-                    */
-
-                    //off_map.forEach((value, key, obj) => {
-                    //    if (key.x == vec.x && key.y == vec.y && key.z == vec.z) {
-                    //        console.log("key")
-                    //    }
-                    //})
-
-                    let key_str = JSON.stringify(vec)
-
-                    off_map.addToKey(key_str, JSON.stringify({
-                        "b1": input[scanner_index_1][b1],
-                        "b1_index": b1,
-                        "b2": beacons_copy[b2],
-                        "b2_index": b2,
-                        "b2_org": input[scanner_index_2][b2]
-                    }
-                    ))
-                    //off_map.addToKey(key_str, JSON.stringify({b1: input[scanner_index_1][b1], b2: input[scanner_index_2][b2]}))
                 }
             }
 
-            //console.log("")
+            if (match_found) {
+                let vec = {x: v12_x-2000, y: v12_y-2000, z: v12_z-2000}
 
-            let it = off_map.keys()
-            while (true) {
-                let next = it.next()
-                if (!next || !next.value)
-                    break
-                let values = off_map.get(next.value)
-                if (values.size >= 12 /*&& values.size > highest_find*/) {
+                let scanner_1 = _.find(known_scanners, (obj) => obj.id === scanner_index_1)
+                let vec_total = vec
+                vec_total.x += scanner_1.vec.x;
+                vec_total.y += scanner_1.vec.y;
+                vec_total.z += scanner_1.vec.z;
 
-                    let vec = JSON.parse(next.value)
+                //assert(_.find(known_scanners, (obj) => obj.id === scanner_index_2) === undefined)
 
-                    if (scanner_index_1 == 4 && scanner_index_2 == 2) {
-                        //console.log("")
-                    }
-
-                    let scanner_1 = _.find(known_scanners, (obj) => obj.id === scanner_index_1)
-                    //scanner_1.rot_negate.forEach((index) => setPositionSignVariant(vec, index))
-                    let vec_total = {...vec}
-                    vec_total.x += scanner_1.vec.x
-                    vec_total.y += scanner_1.vec.y
-                    vec_total.z += scanner_1.vec.z
-
-                    let real_new_found = 0
-                    values.forEach((pos_str) => {
-                        let pos = JSON.parse(pos_str)
-                        //scanner_1.rot_negate.forEach((index) => setPositionSignVariant(pos.b2, index))
-                        pos.b2.x += vec_total.x
-                        pos.b2.y += vec_total.y
-                        pos.b2.z += vec_total.z
-                        let b1_pos_str = JSON.stringify(pos.b1)
-                        let b2_pos_str = JSON.stringify(pos.b2)
-                        if (_.find(known_beacons, (s) => s === b2_pos_str) === undefined) {
-                            real_new_found++
-                        }
-                    })
-
-                    //if (real_new_found >= 12)
-                    {
-                        highest_find_vec = vec_total
-                        highest_find = real_new_found
-                        highest_find_count++
-
-                        //console.log(`For: ${scanner_index_1} with ${scanner_index_2} real_new_found:${real_new_found} highest_find:${highest_find} highest_find_count:${highest_find_count} rot1:${rot1} rot2:${rot2} vec: x=${vec_total.x},y=${vec_total.y},z=${vec_total.z}`)
-
-                        let scanner = _.find(known_scanners, (obj) => obj.id === scanner_index_2)
-                        if (scanner) {
-                            scanner.vec = vec_total
-                            scanner.rot.push(rot1)
-                            scanner.rot_negate.push(rot2)
-                            scanner.vec_hist = scanner.vec_hist.concat(scanner_1.vec_hist)
-                            scanner.vec_hist.push(vec)
-                        }
-                        else {
-                            let new_scanner = {
-                                "id": scanner_index_2,
-                                "vec": vec_total,
-                                "vec_hist": [],
-                                "rot": [rot1],
-                                "rot_negate": [rot2]
-                            }
-                            new_scanner.vec_hist = new_scanner.vec_hist.concat(scanner_1.vec_hist)
-                            new_scanner.vec_hist.push(vec)
-                            known_scanners.push(new_scanner)
-                        }
-
-                        highest_find_beacons_copy = [...beacons_copy]
-                        //input[scanner_index_2] = beacons_copy
-                        highest_find_beacons = [...values]
-                    }
+                for (let n = 0; n < input[scanner_index_2].length; ++n) {
+                    input[scanner_index_2][n].x = beacons_copy[n].x
+                    input[scanner_index_2][n].y = beacons_copy[n].y
+                    input[scanner_index_2][n].z = beacons_copy[n].z
                 }
+                let new_scanner = {
+                    "id": scanner_index_2,
+                    "vec": vec_total,
+                    "rot": [rot1],
+                    "rot_negate": [rot2]
+                }
+                known_scanners.push(new_scanner)
+
+                // Add all the beacons from this scanner perspective. Their positions/orientations/facing is relative
+                // to zeroth scanner. Any duplicates from other scanners are being removed (known_beacons is a set).
+                //let prev_count = known_beacons.size
+
+                for (let n = 0; n < input[scanner_index_2].length; ++n) {
+                    let pos = beacons_copy[n]
+                    let pos2 = {...pos}
+                    pos2.x += vec_total.x
+                    pos2.y += vec_total.y
+                    pos2.z += vec_total.z
+                    let b2_pos_str = JSON.stringify(pos2)
+                    known_beacons.add(b2_pos_str)
+                }
+
+                //let added_beacons = (known_beacons.size - prev_count)
+                //console.log(`For: ${scanner_index_1} with ${scanner_index_2} added_beacons:${added_beacons} rot1:${rot1} rot2:${rot2} vec: x=${vec_total.x},y=${vec_total.y},z=${vec_total.z}`)
+
+                return true
             }
-            /*
-            off_map.forEach((value, key, obj) => {
-                if (value.size >= 12) {
-                    let index = 0
-                    let vec = JSON.parse(key)
-                    console.log(`For: rot: ${rot} ${scanner_index_1} with ${scanner_index_2} vec: x=${vec.x},y=${vec.y},z=${vec.z}`)
-                    let res_arr = []
-                    let off_set_x = value
-                    value.forEach( (pos_str) => {
-                        let pos = JSON.parse(pos_str)
-                        //console.log(`#${index++}: b1:${pos.b1.x},${pos.b1.y},${pos.b1.z}; b2:${pos.b2.x},${pos.b2.y},${pos.b2.z}`)
-                    })
-                }
-            })
-             */
 
-            //_.each(beacons_copy,(pos) => {
-            //    pos.x -= offset.x
-            //    pos.y -= offset.y
-            //    pos.z -= offset.z
-            //})
         }
-        let nn = 0;
-        nn++;
     }
 
-    if (highest_find > 0) {
-        //input[scanner_index_2] = highest_find_beacons_copy
-
-        /*
-        highest_find_beacons_copy.forEach((pos) => {
-
-            //console.log(`#${index++}: b1:${pos.b1.x},${pos.b1.y},${pos.b1.z}; b2:${pos.b2.x},${pos.b2.y},${pos.b2.z}`)
-
-            if (scanner_index_1 == 1 && scanner_index_2 == 4) {
-                //console.log("")
-                let nn = 0;
-                nn++;
-            }
-
-            let scanner_1 = _.find(known_scanners, (obj) => obj.id == scanner_index_2)
-            //scanner_1.rot_negate.forEach((index) => setPositionSignVariant(pos.b2, index))
-
-            pos.x += highest_find_vec.x
-            pos.y += highest_find_vec.y
-            pos.z += highest_find_vec.z
-
-            let pos_str = JSON.stringify(pos)
-
-            if (
-                _.find(known_beacons, (s) => s === pos_str) === undefined
-            )
-            {
-                known_beacons.push(pos_str)
-                console.log(`${pos.x},${pos.y},${pos.z}`)
-            }
-        })
-*/
-
-        highest_find_beacons.forEach((pos_str) => {
-            let pos = JSON.parse(pos_str)
-            //console.log(`#${index++}: b1:${pos.b1.x},${pos.b1.y},${pos.b1.z}; b2:${pos.b2.x},${pos.b2.y},${pos.b2.z}`)
-
-            if (scanner_index_1 == 1 && scanner_index_2 == 4) {
-                //console.log("")
-                let nn = 0;
-                nn++;
-            }
-
-            let scanner_1 = _.find(known_scanners, (obj) => obj.id == scanner_index_2)
-            //scanner_1.rot_negate.forEach((index) => setPositionSignVariant(pos.b2, index))
-
-            pos.b2.x += highest_find_vec.x
-            pos.b2.y += highest_find_vec.y
-            pos.b2.z += highest_find_vec.z
-
-            //pos.b2.x += scanner_1.vec_hist.at(-1).x
-            //pos.b2.y += scanner_1.vec_hist.at(-1).y
-            //pos.b2.z += scanner_1.vec_hist.at(-1).z
-
-            pos.b2_org.x += highest_find_vec.x
-            pos.b2_org.y += highest_find_vec.y
-            pos.b2_org.z += highest_find_vec.z
-
-            //let b_pos_str = JSON.stringify(pos.b2)
-            //if (b_pos_str in known_beacons)
-            //    known_beacons[b_pos_str] += 1
-            //else
-            //    known_beacons[b_pos_str] = 1
-
-            let b1_pos_str = JSON.stringify(pos.b1)
-            let b2_pos_str = JSON.stringify(pos.b2)
-            let b2_org_pos_str = JSON.stringify(pos.b2_org)
-
-            if (
-                _.find(known_beacons, (s) => s === b2_pos_str) === undefined
-            )
-            {
-                known_beacons.push(b2_pos_str)
-                //console.log(`${pos.b2.x},${pos.b2.y},${pos.b2.z}`)
-            }
-        })
-
-        return true
-    }
-
-    //console.log(`For: ${scanner_index_1} with ${scanner_index_2} none overlapped`)
+    //console.log(`For: ${scanner_index_1} with ${scanner_index_2} - NONE!`)
 
     return false
 }
 
-function calculateBeaconsCount(input) {
-
-    // Sort each scanners beacons
-    //_.each(input,(beacons, scanner_id) => {
-    //    beacons.sort((pt1, pt2) => distance(pt1, pt2))
-    //})
-    let known_scanners = [{id:0, vec:{x:0,y:0,z:0}, vec_hist:[{x:0,y:0,z:0}], rot:[0], rot_negate:[0]}]
-    let known_beacons = []
-    let was_checked = []
-    let were_checked_against = {}
-
-    let scanners_count = Object.keys(input).length
-    for (let n = 0; n < scanners_count; ++n) {
-        if (_.find(known_scanners, (value) => {
-            return value.id === n
-        }) === undefined) {
-            continue
-        }
-        if(_.find(was_checked, (id) => {
-            return id === n
-        }) !== undefined)
+function calculateScannersAndBeacons(input) {
+    let known_scanners = [
         {
-            continue;
+            id: 0,
+            vec: {x: 0, y: 0, z: 0},
+            rot: [0],
+            rot_negate: [0]
         }
-        was_checked.push(n)
+    ]
 
-        let reset_scan = false
+    let known_beacons = new Set()
+    let were_checked_against = {}
+    let scanners_count = Object.keys(input).length
+
+    // Add all the beacons visible from the zero-th scanner. Their coordinates are already at the proper
+    // coordinates and orientation/facing.
+    input[0].forEach((org_pos) => {
+        let pos = {...org_pos}
+        known_beacons.add(JSON.stringify(pos))
+    })
+
+    let scanners_to_check = []
+    let checked_scanners = new Set
+    scanners_to_check.push(0)
+
+    while (scanners_to_check.length !== 0) {
+        let n = scanners_to_check.pop()
+        checked_scanners.add(n)
+
         for (let k = 0; k < scanners_count; ++k) {
-           // whyyyyyyy ?!?!?
-            // if (n === k)
-           //     continue
-            if (`${n}_${k}` in were_checked_against)
+
+            // Do not check scanner against itself, and dont check scanner mutually
+            if (n === k || `${n}_${k}` in were_checked_against)
                 continue;
             were_checked_against[`${n}_${k}`] = 1
             were_checked_against[`${k}_${n}`] = 1
 
-            if (findBeaconsUnion(input, n, k, known_scanners, known_beacons)) {
-                reset_scan = true
+            // Dont check against scanners which position is already calculated
+            if (_.find(known_scanners, (scanner) => scanner.id === k) !== undefined)
+                continue
 
-            }
+            // Find same beacons
+            if (findBeaconsUnion(input, n, k, known_scanners, known_beacons))
+                scanners_to_check.push(k)
         }
-        if (reset_scan)
-            n = -1
     }
 
-    //console.log("res: " + known_beacons.length)
-    return Object.keys(known_beacons).length
+    return {beacons: known_beacons, scanners: known_scanners}
+}
+
+function calculateBeaconsMaxManhatanDistance(beacons_and_scanners_data) {
+    let scanners_positions = []
+    beacons_and_scanners_data.scanners.forEach((s) => scanners_positions.push(s.vec))
+    let max_dist = -1
+    for (let n = 0; n < scanners_positions.length; ++n) {
+        for (let k = 0; k < scanners_positions.length; ++k) {
+            let dx = scanners_positions[n].x - scanners_positions[k].x
+            let dy = scanners_positions[n].y - scanners_positions[k].y
+            let dz = scanners_positions[n].z - scanners_positions[k].z
+            let sum = Math.abs(dx) + Math.abs(dy) + Math.abs(dz)
+            if (sum > max_dist)
+                max_dist = sum
+        }
+    }
+    return max_dist
 }
 
 function run() {
     console.log("\nDay 19")
 
     let input = loadData('data.txt')
-    let val = calculateBeaconsCount(input);
-    console.log(`Part 1: ${val}`)
-    assert(val === 432)
+    let res_data = calculateScannersAndBeacons(input);
+    console.log(`Part 1: ${res_data.beacons.size}`)
+    assert(res_data.beacons.size === 432)
 
-    //val = calculateBeaconsCount(input);
-    //console.log(`Part 2: ${val}`)
-    //assert(val === 4664)
+    let val = calculateBeaconsMaxManhatanDistance(res_data);
+    console.log(`Part 2: ${val}`)
+    assert(val === 14414)
 }
 
-module.exports = {run, loadData, parseData, calculateBeaconsCount}
+module.exports = {run, loadData, parseData, calculateScannersAndBeacons, calculateBeaconsMaxManhatanDistance}
