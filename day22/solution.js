@@ -90,7 +90,7 @@ function calculateVolume(cube) {
 }
 
 function calculateCubesInOnState(data, part1) {
-    let on_cubes = []
+    let core_cubes = []
     let filter_cube = {
         x1:-50,
         x2:50,
@@ -105,6 +105,14 @@ function calculateCubesInOnState(data, part1) {
             if (!cuboid.cub)
                 continue
         }
+
+        // https://www.reddit.com/r/adventofcode/comments/rlxhmg/2021_day_22_solutions/hqxczc4/?utm_source=share&utm_medium=web2x&context=3
+        // Idea to use +1 and -1, and negating it comes from reddit on 22 days of aoc, it is from set theory:
+        // (AvB)vC| = (|A|+|B|-|A^B|) + |C| - |A^C| - |A^B| + |A^B^C|
+        // so initially you have only |A| (it is added to core_cubes), then in next iteration you add |B|, it is
+        // added to core_cubes, but also you remove |A^B| by intersecting |B| with |A| and adding result to
+        // core_cubes with negated on flag. Then when you add |C| you follow the same pattern.
+        
         let new_cuboid = {
             on: (cuboid.on ? 1 : -1),
             cub: cuboid.cube
@@ -115,7 +123,7 @@ function calculateCubesInOnState(data, part1) {
             add_cubes.push(new_cuboid)
         }
 
-        on_cubes.forEach((on_cuboid) => {
+        core_cubes.forEach((on_cuboid) => {
             let int_res = intersect(new_cuboid.cub, on_cuboid.cub)
             if (int_res) {
                 add_cubes.push({
@@ -125,9 +133,9 @@ function calculateCubesInOnState(data, part1) {
             }
         })
 
-        on_cubes.push(...add_cubes)
+        core_cubes.push(...add_cubes)
     }
-    return _.reduce(on_cubes, (acc, c) => acc + calculateVolume(c.cub) * c.on, 0)
+    return _.reduce(core_cubes, (acc, c) => acc + calculateVolume(c.cub) * c.on, 0)
 }
 
 function run() {
