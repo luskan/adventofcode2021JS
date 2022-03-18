@@ -20,7 +20,10 @@ var day19 = require('./day19/solution');
 var day20 = require('./day20/solution');
 var day21 = require('./day21/solution');
 var day22 = require('./day22/solution');
+var day23 = require('./day23/solution');
 
+
+/*
 day1.run()
 day2.run()
 day3.run()
@@ -42,4 +45,5 @@ day18.run()
 day19.run()
 day20.run()
 day21.run()
-day22.run()
+day22.run()*/
+day23.run()
