@@ -3,15 +3,15 @@ const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
 
-function loadData(fileName) {
+function loadData(fileName, part2) {
     return parseData(fs
         .readFileSync(path.join(__dirname, fileName), "utf-8")
         .toString()
-        .split('\n'))
+        .split('\n'), part2)
     //.map((line) => line.split('')))
 }
 
-function parseData(data) {
+function parseData(data, part2) {
     /*
     #############
     #...........#
@@ -20,20 +20,27 @@ function parseData(data) {
       #########
      */
 
+    if (part2) {
+        let ln1 = "  #D#C#B#A#"
+        let ln2 = "  #D#B#A#C#"
+        data.splice(3,0,ln1)
+        data.splice(4,0,ln2)
+    }
+
     const hallway = /#(?<dots>\.+)#/.exec(data[1]).groups
     const rooms_parse = /#+(?<room1>\w+)#(?<room2>\w+)#(?<room3>\w+)#(?<room4>\w+)#+/
-    const top_rooms = rooms_parse.exec(data[2]).groups
-    const bottom_rooms = rooms_parse.exec(data[3]).groups
     let parsed_data = {
         hallway: hallway.dots.split(''),
-        rooms: [
-            [top_rooms.room1[0], top_rooms.room2[0], top_rooms.room3[0], top_rooms.room4[0]],
-            [bottom_rooms.room1[0], bottom_rooms.room2[0], bottom_rooms.room3[0], bottom_rooms.room4[0]]
-        ],
+        rooms: [],
+    }
+
+    for (let row = 2; row < data.length - 1; ++row) {
+        const rooms = rooms_parse.exec(data[row]).groups
+        parsed_data.rooms.push([rooms.room1[0], rooms.room2[0], rooms.room3[0], rooms.room4[0]])
     }
 
     parsed_data['amphis'] = []
-    for (let row = 0; row <= 1; ++row) {
+    for (let row = 0; row < parsed_data.rooms.length; ++row) {
         for (let room = 0; room <= 3; ++room) {
             parsed_data['amphis'].push(
                 {
@@ -65,20 +72,18 @@ function amphipodeEnergyByName(name) {
     assert(false)
 }
 
-let least_energy = Number.MAX_SAFE_INTEGER
-
 function drawRooms(data) {
     console.log(`############# - ${least_energy}`)
     console.log(`#${data.hallway.join('')}#`)
-    console.log(`###${data.rooms[0][0]}#${data.rooms[0][1]}#${data.rooms[0][2]}#${data.rooms[0][3]}###`)
-    console.log(`  #${data.rooms[1][0]}#${data.rooms[1][1]}#${data.rooms[1][2]}#${data.rooms[1][3]}#`)
+    for (let n = 0; n < data.rooms.length; ++n) {
+        console.log(`${n == 0?"###":"  #"}${data.rooms[n][0]}#${data.rooms[n][1]}#${data.rooms[n][2]}#${data.rooms[n][3]}${n == 0?"###":"#"}`)
+    }
     console.log("  #########")
     console.log("")
 }
 
+let least_energy = Number.MAX_SAFE_INTEGER
 let was_checked = {}
-
-
 let hallway_exit_ind = [2, 4, 6, 8]
 let allowed_stay_ind = [0, 1, 3, 5, 7, 9, 10]
 
@@ -86,32 +91,44 @@ function findLeastEnergyRec(org_data, prev_energy, depth) {
     if (prev_energy > least_energy)
         return
 
-    let key = `${prev_energy}_${org_data.hallway.join('')}_${org_data.rooms[0][0]}#${org_data.rooms[0][1]}#${org_data.rooms[0][2]}#${org_data.rooms[0][3]}#${org_data.rooms[1][0]}#${org_data.rooms[1][1]}#${org_data.rooms[1][2]}#${org_data.rooms[1][3]}`
-    if (key in was_checked) {
-        return
+    if (true) {
+        let key = `${prev_energy}_${org_data.hallway.join('')}`
+        for (let n = 0; n < org_data.rooms.length; ++n) {
+            key += `${org_data.rooms[n][0]}_${org_data.rooms[n][1]}_${org_data.rooms[n][2]}_${org_data.rooms[n][3]}`
+        }
+        if (key in was_checked)
+            return
+        was_checked[key] = 1
     }
-    was_checked[key] = 1
 
-    //drawRooms(data)
+    //drawRooms(org_data)
     /*
-let dgb = false
-    if (   org_data.hallway.join('') === "...B.C....." &&
-           org_data.rooms[0][0] === 'B' && org_data.rooms[0][1] === '.' && org_data.rooms[0][2] === '.' && org_data.rooms[0][3] === 'D'
-        && org_data.rooms[1][0] === 'A' && org_data.rooms[1][1] === 'D' && org_data.rooms[1][2] === 'C' && org_data.rooms[1][3] === 'A'
-    ) {
-        if (prev_energy == 240)
-            dgb = true
-        console.log(`prev_energy - ${prev_energy}`)
-        drawRooms(org_data)
-    }
-    if (   org_data.hallway.join('') === "...B......." &&
-           org_data.rooms[0][0] === 'B' && org_data.rooms[0][1] === '.' && org_data.rooms[0][2] === 'C' && org_data.rooms[0][3] === 'D'
-        && org_data.rooms[1][0] === 'A' && org_data.rooms[1][1] === 'D' && org_data.rooms[1][2] === 'C' && org_data.rooms[1][3] === 'A'
-    ) {
-        console.log(`prev_energy - ${prev_energy}`)
-        drawRooms(org_data)
-    }
-     */
+    let dgb = false
+        let dbg_arr = [
+            ['..........D'],
+            ['B', 'C', 'B', '.'],
+            ['D', 'C', 'B', 'A'],
+            ['D', 'B', 'A', 'C'],
+            ['A', 'D', 'C', 'A']
+        ]
+        let found_match = true
+        for (let k = 0; k < org_data.rooms.length; ++k) {
+            if(org_data.rooms[k][0] === dbg_arr[k+1][0] && org_data.rooms[k][1] === dbg_arr[k+1][1]
+            && org_data.rooms[k][2] === dbg_arr[k+1][2] && org_data.rooms[k][3] === dbg_arr[k+1][3])
+            {
+            }
+            else {
+                found_match = false
+                break
+            }
+        }
+        if ( found_match && org_data.hallway.join('') === dbg_arr[0][0]) {
+            if (prev_energy == 3000)
+                dgb = true
+            console.log(`prev_energy - ${prev_energy}, depth - ${depth}`)
+            drawRooms(org_data)
+        }
+    */
 
     for (let n = 0; n < org_data.amphis.length; ++n) {
         if (org_data.amphis[n].has_moved && org_data.amphis[n].hallway_pos === -1)
@@ -121,10 +138,22 @@ let dgb = false
         let row = amp.row
         let room = amp.room
 
-        if (row === 1 && org_data.rooms[0][room] !== '.')
-            continue
 
-        //if (dgb && amp.name === 'C') {
+        if (row >= 0) {
+            // if row is non -1 then amphi is not on hallway but in some room. Check if it is exit is blocked by other
+            // amphis.
+            let found_non_dot = false
+            for (let n = 0; n < row && n < org_data.rooms.length; ++n) {
+                if (org_data.rooms[n][room] !== '.') {
+                    found_non_dot = true
+                    break;
+                }
+            }
+            if (found_non_dot)
+                continue
+        }
+
+        //if (dgb && amp.name === 'A') {
         //    console.log("")
         //}
 
@@ -138,8 +167,22 @@ let dgb = false
         else if (amp.name === 'D')
             home_room = 3
 
-        // Check if it is in its destination place. Also check if its in home room, it isn't blocking some other amphi.
+        // Check if it is in its destination place (ie. it was there from the beggining).
+        // Also check if its in home room, it isn't blocking some other amphi below it. If so, then even
+        // tho it is in destination room, it will have to move to hallway to allow those amphis move out.
         if (home_room === room) {
+            let is_blocking_other_amphis = false
+            for (let n = row+1; n < org_data.rooms.length; ++n) {
+                if (org_data.rooms[n][room] !== '.' && org_data.rooms[n][room] !== amp.name) {
+                    is_blocking_other_amphis = true
+                    break;
+                }
+            }
+            if (!is_blocking_other_amphis)
+                continue
+        }
+        /*
+                if (home_room === room) {
             if (row === 1)
                 continue;
             if (row === 0) {
@@ -147,28 +190,35 @@ let dgb = false
                     continue
                 }
             }
-        }
+        }*/
 
         // If row is -1 then it indicates amphi is on hallway
         if (row === -1) {
             //drawRooms(data)
 
-
-            // Try to go home
+            // Try to go home. Find a position in the room most to the bottom, also verify if entering it
+            // will not block other amphis.
             let home_room_exit_pos = hallway_exit_ind[home_room]
             let is_home_free = false
             let home_row = 0
-            if (org_data.rooms[1][home_room] === '.') {
-                is_home_free = true
-                home_row = 1
-            } else if (org_data.rooms[0][home_room] === '.') {
-                is_home_free = true
-                home_row = 0
+
+            // First find first empty place in this room
+            for (let n = 0; n < org_data.rooms.length; ++n) {
+                if (org_data.rooms[n][home_room] === '.') {
+                    home_row = n
+                    is_home_free = true
+                }
+                else
+                    break;
             }
-            if (home_row === 0 && org_data.rooms[1][home_room] !== amp.name) {
-                // its neighbours from bottom place is different
-                is_home_free = false
+            // Now check if below this place, there are only taken places by its own kind.
+            for (let n = home_row+1; n < org_data.rooms.length; ++n) {
+                if (org_data.rooms[n][home_room] !== amp.name) {
+                    is_home_free = false
+                    break;
+                }
             }
+
             if (!is_home_free)
                 continue
 
@@ -191,19 +241,32 @@ let dgb = false
                 data.rooms[home_row][home_room] = amp.name
                 amp.row = home_row
                 amp.room = home_room
-                let energy = (Math.abs(home_room_exit_pos - amp.hallway_pos) + (home_row === 1 ? 2 : 1)) * amphipodeEnergyByName(amp.name)
+                let energy = (Math.abs(home_room_exit_pos - amp.hallway_pos) + (home_row + 1)) * amphipodeEnergyByName(amp.name)
                 amp.hallway_pos = -1
 
                 //drawRooms(data)
 
                 // Check if all amphis are in their home places.
-                if (data.rooms[0][0] === 'A' && data.rooms[0][1] === 'B' && data.rooms[0][2] === 'C' && data.rooms[0][3] === 'D'
-                    && data.rooms[1][0] === 'A' && data.rooms[1][1] === 'B' && data.rooms[1][2] === 'C' && data.rooms[1][3] === 'D') {
+                let all_amphis_are_home = true;
+                for (let r = 0; r < data.rooms.length; ++r) {
+                    if (!(data.rooms[r][0] === 'A' && data.rooms[r][1] === 'B' && data.rooms[r][2] === 'C' && data.rooms[r][3] === 'D')) {
+                        all_amphis_are_home = false
+                        break;
+                    }
+                }
 
+                //if (data.rooms[0][0] === 'A' && data.rooms[0][1] === 'B' && data.rooms[0][2] === 'C' && data.rooms[0][3] === 'D'
+                //    && data.rooms[1][0] === 'A' && data.rooms[1][1] === 'B' && data.rooms[1][2] === 'C' && data.rooms[1][3] === 'D') {
+                //}
+                //else {
+                //    all_amphis_are_home = false
+                //}
+
+                if (all_amphis_are_home) {
                     if (prev_energy+energy < least_energy) {
                         least_energy = energy + prev_energy
-                        drawRooms(data)
-                        console.log(`depth: ${depth}`)
+                        //drawRooms(data)
+                        //console.log(`depth: ${depth}`)
                     }
                 } else {
                     if (prev_energy+energy < least_energy)
@@ -224,10 +287,20 @@ let dgb = false
                     continue
 
                 // Check if it is blocked by some other amphi
-                if (row === 1 && org_data.rooms[0][room] !== '.')
+                //if (row === 1 && org_data.rooms[0][room] !== '.')
+                //    continue
+
+                let is_blocked_by_amphis_above = false
+                for (let n = row-1; n >= 0; --n) {
+                    if (org_data.rooms[n][room] !== '.') {
+                        is_blocked_by_amphis_above = true
+                        break;
+                    }
+                }
+                if (is_blocked_by_amphis_above)
                     continue
 
-                let amp = org_data.amphis[n]
+                //let amp = org_data.amphis[n]
 
                 let energy = 0
                 let name = org_data.rooms[row][room];
@@ -259,7 +332,7 @@ let dgb = false
                 data.amphis[n].row = -1
                 data.amphis[n].room = -1
                 data.amphis[n].has_moved = true
-                energy += (Math.abs(exit_pos - new_pos) + (row === 1 ? 2 : 1)) * amphipodeEnergyByName(name)
+                energy += (Math.abs(exit_pos - new_pos) + (row+1)) * amphipodeEnergyByName(name)
 
                 if (prev_energy + energy < least_energy)
                     findLeastEnergyRec(data, prev_energy + energy, depth + 1)
@@ -268,22 +341,25 @@ let dgb = false
     }
 }
 
-function calculateLeastEnergy(data, part1) {
+function calculateLeastEnergy(data) {
+    least_energy = Number.MAX_SAFE_INTEGER
+    was_checked = {}
     findLeastEnergyRec(data, 0, 0)
     return least_energy
 }
 
 function run() {
     console.log("\nDay 23")
-    let input = loadData('data.txt')
 
+    let input = loadData('data.txt', false)
     let res = calculateLeastEnergy(input, true);
     console.log(`Part 1: ${res}`)
     assert(res === 15299)
 
-    //res = calculateLeastEnergy(input, false);
-    //console.log(`Part 2: ${res}`)
-    //assert(res === 1235484513229032)
+    let input2 = loadData('data.txt', true)
+    res = calculateLeastEnergy(input2, false);
+    console.log(`Part 2: ${res}`)
+    assert(res === 47193)
 }
 
 module.exports = {run, loadData, parseData, calculateLeastEnergy}
