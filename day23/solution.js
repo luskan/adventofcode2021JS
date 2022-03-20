@@ -1,4 +1,3 @@
-const _ = require("lodash");
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
@@ -23,8 +22,8 @@ function parseData(data, part2) {
     if (part2) {
         let ln1 = "  #D#C#B#A#"
         let ln2 = "  #D#B#A#C#"
-        data.splice(3,0,ln1)
-        data.splice(4,0,ln2)
+        data.splice(3, 0, ln1)
+        data.splice(4, 0, ln2)
     }
 
     const hallway = /#(?<dots>\.+)#/.exec(data[1]).groups
@@ -32,6 +31,7 @@ function parseData(data, part2) {
     let parsed_data = {
         hallway: hallway.dots.split(''),
         rooms: [],
+        least_energy: Number.MAX_SAFE_INTEGER
     }
 
     for (let row = 2; row < data.length - 1; ++row) {
@@ -76,68 +76,63 @@ function drawRooms(data) {
     console.log(`############# - ${least_energy}`)
     console.log(`#${data.hallway.join('')}#`)
     for (let n = 0; n < data.rooms.length; ++n) {
-        console.log(`${n == 0?"###":"  #"}${data.rooms[n][0]}#${data.rooms[n][1]}#${data.rooms[n][2]}#${data.rooms[n][3]}${n == 0?"###":"#"}`)
+        console.log(`${n === 0 ? "###" : "  #"}${data.rooms[n][0]}#${data.rooms[n][1]}#${data.rooms[n][2]}#${data.rooms[n][3]}${n === 0 ? "###" : "#"}`)
     }
     console.log("  #########")
     console.log("")
 }
 
-let least_energy = Number.MAX_SAFE_INTEGER
-let was_checked = {}
-let hallway_exit_ind = [2, 4, 6, 8]
-let allowed_stay_ind = [0, 1, 3, 5, 7, 9, 10]
+const hallway_exit_ind = [2, 4, 6, 8]
+const allowed_stay_ind = [0, 1, 3, 5, 7, 9, 10]
 
-function findLeastEnergyRec(org_data, prev_energy, depth) {
-    if (prev_energy > least_energy)
-        return
+function amphiToNum(c) {
+    if (c === 'A')
+        return 1
+    else if (c === 'B')
+        return 2
+    else if (c === 'C')
+        return 3
+    else if (c === 'D')
+        return 4
+    else
+        return 5 // for '.'
+}
 
-    if (true) {
-        let key = `${prev_energy}_${org_data.hallway.join('')}`
-        for (let n = 0; n < org_data.rooms.length; ++n) {
-            key += `${org_data.rooms[n][0]}_${org_data.rooms[n][1]}_${org_data.rooms[n][2]}_${org_data.rooms[n][3]}`
+function amphiDataToKey(org_data, prev_energy) {
+    let key1 = 0
+    for (let n = 0; n < org_data.hallway.length; ++n) {
+        key1 *= 10
+        key1 += amphiToNum(org_data.hallway[n])
+    }
+    let key2 = 0
+    for (let n = 0; n < org_data.rooms.length; ++n) {
+        for (let r = 0; r < org_data.rooms[n].length; ++r) {
+            key2 *= 10
+            key2 += amphiToNum(org_data.rooms[n][r].charAt(0))
         }
-        if (key in was_checked)
-            return
-        was_checked[key] = 1
     }
 
-    //drawRooms(org_data)
-    /*
-    let dgb = false
-        let dbg_arr = [
-            ['..........D'],
-            ['B', 'C', 'B', '.'],
-            ['D', 'C', 'B', 'A'],
-            ['D', 'B', 'A', 'C'],
-            ['A', 'D', 'C', 'A']
-        ]
-        let found_match = true
-        for (let k = 0; k < org_data.rooms.length; ++k) {
-            if(org_data.rooms[k][0] === dbg_arr[k+1][0] && org_data.rooms[k][1] === dbg_arr[k+1][1]
-            && org_data.rooms[k][2] === dbg_arr[k+1][2] && org_data.rooms[k][3] === dbg_arr[k+1][3])
-            {
-            }
-            else {
-                found_match = false
-                break
-            }
-        }
-        if ( found_match && org_data.hallway.join('') === dbg_arr[0][0]) {
-            if (prev_energy == 3000)
-                dgb = true
-            console.log(`prev_energy - ${prev_energy}, depth - ${depth}`)
-            drawRooms(org_data)
-        }
-    */
+    // I am not sure this blocks some execution paths, algorithm passes all the tests.
+    // More reliable but slower would be string key. Even better solution for good key would be bit packing
+    // of the data state.
+    return key1 ^ key2 ^ prev_energy
+}
+
+function findLeastEnergyRec(org_data, prev_energy, cache) {
+    let key = amphiDataToKey(org_data, prev_energy)
+    if (cache.has(key))
+        return
+    cache.set(key, 1)
 
     for (let n = 0; n < org_data.amphis.length; ++n) {
-        if (org_data.amphis[n].has_moved && org_data.amphis[n].hallway_pos === -1)
+        let amp = org_data.amphis[n]
+
+        // Check if it is in its final position
+        if (amp.has_moved && amp.hallway_pos === -1)
             continue
 
-        let amp = org_data.amphis[n]
         let row = amp.row
         let room = amp.room
-
 
         if (row >= 0) {
             // if row is non -1 then amphi is not on hallway but in some room. Check if it is exit is blocked by other
@@ -152,10 +147,6 @@ function findLeastEnergyRec(org_data, prev_energy, depth) {
             if (found_non_dot)
                 continue
         }
-
-        //if (dgb && amp.name === 'A') {
-        //    console.log("")
-        //}
 
         let home_room = 0
         if (amp.name === 'A')
@@ -172,7 +163,7 @@ function findLeastEnergyRec(org_data, prev_energy, depth) {
         // tho it is in destination room, it will have to move to hallway to allow those amphis move out.
         if (home_room === room) {
             let is_blocking_other_amphis = false
-            for (let n = row+1; n < org_data.rooms.length; ++n) {
+            for (let n = row + 1; n < org_data.rooms.length; ++n) {
                 if (org_data.rooms[n][room] !== '.' && org_data.rooms[n][room] !== amp.name) {
                     is_blocking_other_amphis = true
                     break;
@@ -181,20 +172,11 @@ function findLeastEnergyRec(org_data, prev_energy, depth) {
             if (!is_blocking_other_amphis)
                 continue
         }
-        /*
-                if (home_room === room) {
-            if (row === 1)
-                continue;
-            if (row === 0) {
-                if (org_data.rooms[1][home_room] === amp.name) {
-                    continue
-                }
-            }
-        }*/
 
-        // If row is -1 then it indicates amphi is on hallway
-        if (row === -1) {
-            //drawRooms(data)
+        // Now process separately amphis on hallway and those still in room
+        if (amp.hallway_pos !== -1) {
+
+            // Amphi is on hallway
 
             // Try to go home. Find a position in the room most to the bottom, also verify if entering it
             // will not block other amphis.
@@ -207,21 +189,20 @@ function findLeastEnergyRec(org_data, prev_energy, depth) {
                 if (org_data.rooms[n][home_room] === '.') {
                     home_row = n
                     is_home_free = true
-                }
-                else
+                } else
                     break;
             }
             // Now check if below this place, there are only taken places by its own kind.
-            for (let n = home_row+1; n < org_data.rooms.length; ++n) {
+            for (let n = home_row + 1; n < org_data.rooms.length; ++n) {
                 if (org_data.rooms[n][home_room] !== amp.name) {
                     is_home_free = false
                     break;
                 }
             }
-
             if (!is_home_free)
                 continue
 
+            // Check if hallway movement is blocked by some other amphi
             let is_blocked = false
             if (home_room_exit_pos < amp.hallway_pos) {
                 for (let k = home_room_exit_pos; k < amp.hallway_pos && !is_blocked; ++k) {
@@ -234,64 +215,62 @@ function findLeastEnergyRec(org_data, prev_energy, depth) {
                         is_blocked = true
                 }
             }
+
             if (is_home_free && !is_blocked) {
-                let data = _.cloneDeep(org_data)
-                let amp = data.amphis[n]
-                data.hallway[amp.hallway_pos] = '.'
-                data.rooms[home_row][home_room] = amp.name
-                amp.row = home_row
-                amp.room = home_room
+                // Movement is allowed
+
                 let energy = (Math.abs(home_room_exit_pos - amp.hallway_pos) + (home_row + 1)) * amphipodeEnergyByName(amp.name)
-                amp.hallway_pos = -1
+                if (prev_energy + energy >= org_data.least_energy)
+                    continue
 
-                //drawRooms(data)
-
-                // Check if all amphis are in their home places.
+                // Check if all amphis are in their home places. If so, then this is a final step.
                 let all_amphis_are_home = true;
-                for (let r = 0; r < data.rooms.length; ++r) {
-                    if (!(data.rooms[r][0] === 'A' && data.rooms[r][1] === 'B' && data.rooms[r][2] === 'C' && data.rooms[r][3] === 'D')) {
+                let prev_room_owner = org_data.rooms[home_row][home_room]
+                org_data.rooms[home_row][home_room] = amp.name
+                for (let r = 0; r < org_data.rooms.length; ++r) {
+                    if (!(org_data.rooms[r][0] === 'A' && org_data.rooms[r][1] === 'B' && org_data.rooms[r][2] === 'C' && org_data.rooms[r][3] === 'D')) {
                         all_amphis_are_home = false
                         break;
                     }
                 }
-
-                //if (data.rooms[0][0] === 'A' && data.rooms[0][1] === 'B' && data.rooms[0][2] === 'C' && data.rooms[0][3] === 'D'
-                //    && data.rooms[1][0] === 'A' && data.rooms[1][1] === 'B' && data.rooms[1][2] === 'C' && data.rooms[1][3] === 'D') {
-                //}
-                //else {
-                //    all_amphis_are_home = false
-                //}
+                org_data.rooms[home_row][home_room] = prev_room_owner
 
                 if (all_amphis_are_home) {
-                    if (prev_energy+energy < least_energy) {
-                        least_energy = energy + prev_energy
-                        //drawRooms(data)
-                        //console.log(`depth: ${depth}`)
-                    }
+                    // All are home, update least energy variable
+                    org_data.least_energy = energy + prev_energy
                 } else {
-                    if (prev_energy+energy < least_energy)
-                        findLeastEnergyRec(data, prev_energy + energy, depth + 1)
+                    let prev_hallway_amphi = org_data.hallway[amp.hallway_pos]
+                    let prev_room_amphi = org_data.rooms[home_row][home_room]
+                    let prev_row = amp.row
+                    let prev_room = amp.room
+                    let prev_hallway_pos = amp.hallway_pos
+
+                    org_data.hallway[amp.hallway_pos] = '.'
+                    org_data.rooms[home_row][home_room] = amp.name
+                    amp.row = home_row
+                    amp.room = home_room
+                    amp.hallway_pos = -1
+
+                    findLeastEnergyRec(org_data, prev_energy + energy, cache)
+
+                    org_data.hallway[prev_hallway_pos] = prev_hallway_amphi
+                    org_data.rooms[home_row][home_room] = prev_room_amphi
+                    amp.row = prev_row
+                    amp.room = prev_room
+                    amp.hallway_pos = prev_hallway_pos
                 }
             }
         } else {
             // Its in some room
-            //if (data.rooms[row][room] === '.') {
-            //    assert(data.rooms[row][room] !== '.')
-            //}
 
             // Lets try all hallways positions
             for (let i = 0; i < allowed_stay_ind.length; ++i) {
-                //if (org_data.rooms[row][room] === '.')
-                //    continue
                 if (org_data.hallway[allowed_stay_ind[i]] !== '.')
                     continue
 
                 // Check if it is blocked by some other amphi
-                //if (row === 1 && org_data.rooms[0][room] !== '.')
-                //    continue
-
                 let is_blocked_by_amphis_above = false
-                for (let n = row-1; n >= 0; --n) {
+                for (let n = row - 1; n >= 0; --n) {
                     if (org_data.rooms[n][room] !== '.') {
                         is_blocked_by_amphis_above = true
                         break;
@@ -300,15 +279,13 @@ function findLeastEnergyRec(org_data, prev_energy, depth) {
                 if (is_blocked_by_amphis_above)
                     continue
 
-                //let amp = org_data.amphis[n]
-
                 let energy = 0
-                let name = org_data.rooms[row][room];
-                assert (name !== '.')
                 let new_pos = -1
 
+                // Get new hallway position
                 new_pos = allowed_stay_ind[i]
 
+                // Check if getting to it is possible
                 let exit_pos = hallway_exit_ind[room]
                 let is_blocked = false
                 if (new_pos < exit_pos) {
@@ -325,27 +302,47 @@ function findLeastEnergyRec(org_data, prev_energy, depth) {
                 if (is_blocked)
                     continue
 
-                let data = _.cloneDeep(org_data)
-                data.rooms[row][room] = '.';
-                data.hallway[new_pos] = name;
-                data.amphis[n].hallway_pos = new_pos
-                data.amphis[n].row = -1
-                data.amphis[n].room = -1
-                data.amphis[n].has_moved = true
-                energy += (Math.abs(exit_pos - new_pos) + (row+1)) * amphipodeEnergyByName(name)
+                let name = org_data.rooms[row][room];
+                assert(name !== '.')
+                energy += (Math.abs(exit_pos - new_pos) + (row + 1)) * amphipodeEnergyByName(name)
 
-                if (prev_energy + energy < least_energy)
-                    findLeastEnergyRec(data, prev_energy + energy, depth + 1)
+                if (prev_energy + energy < org_data.least_energy) {
+                    let prev_room_amphi = org_data.rooms[row][room]
+                    let prev_hallway_amphi = org_data.hallway[new_pos]
+                    let prev_hallway_pos = amp.hallway_pos
+                    let prev_row = amp.row
+                    let prev_room = amp.room
+                    let prev_has_moved = amp.has_moved
+
+                    org_data.rooms[row][room] = '.';
+                    org_data.hallway[new_pos] = name;
+                    amp.hallway_pos = new_pos
+                    amp.row = -1
+                    amp.room = -1
+                    amp.has_moved = true
+
+                    findLeastEnergyRec(org_data, prev_energy + energy, cache)
+
+                    org_data.rooms[row][room] = prev_room_amphi
+                    org_data.hallway[new_pos] = prev_hallway_amphi
+                    amp.hallway_pos = prev_hallway_pos
+                    amp.row = prev_row
+                    amp.room = prev_room
+                    amp.has_moved = prev_has_moved
+                }
             }
         }
     }
 }
 
 function calculateLeastEnergy(data) {
-    least_energy = Number.MAX_SAFE_INTEGER
-    was_checked = {}
-    findLeastEnergyRec(data, 0, 0)
-    return least_energy
+    const was_checked = new Map()
+
+    //console.time("findLeastEnergyRec")
+    findLeastEnergyRec(data, 0, was_checked)
+    //console.timeEnd("findLeastEnergyRec")
+
+    return data.least_energy
 }
 
 function run() {
