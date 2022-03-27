@@ -271,7 +271,7 @@ function maxVariantsForK(k) {
     return max_v
 }
 
-function calculateLargestModelNumber(program) {
+function calculateLargestModelNumber(program, part1) {
     /*
         The basic idea is to find what z-values are ending in 0, for the last digit. Then bactrack to find
         possible numbers backwards. The rest is lots of heuristics.
@@ -299,7 +299,7 @@ function calculateLargestModelNumber(program) {
 
         let min_z = 0
         let max_z = maxZForK(k)
-        let maxVariants = maxVariantsForK(k)
+        let maxVariants = part1 ? 1 : maxVariantsForK(k)
 
         // Store z-values that are possible to compute by next digit.
         // todo: yeah this could be reused later, but its so fast that I guess it would not make much difference
@@ -341,7 +341,7 @@ function calculateLargestModelNumber(program) {
                     continue
                 }
 
-                for (let next_k_w = 1; next_k_w <= 9; ++next_k_w) {
+                for (let next_k_w = 1; next_k_w <= 9; next_k_w += 1) {
                     if (!z_cache[k + 1].has(new_val_z * 100 + next_k_w))
                         continue;
                     for (let variant = 0; ; variant++) {
@@ -355,7 +355,7 @@ function calculateLargestModelNumber(program) {
                                 let variant_val = 0
                                 while (variant_val < maxVariants) {
                                     let key2 = (val_z * 10 + val_w) * 1000 + variant_val
-                                    if (cache[k].has(key2)) {
+                                    if (cache[k].has(key2) && !part1) {
                                         variant_val++
                                     } else {
                                         cache[k].set(key2, number2)
@@ -371,13 +371,6 @@ function calculateLargestModelNumber(program) {
                 }
             }
         }
-
-        // Free memory
-        if (k < 13) {
-            // commented out as it costs 0.2s :-)
-           // cache[k + 1].clear()
-           // z_cache[k + 1].clear()
-        }
     }
 
     // Prepare results
@@ -388,31 +381,36 @@ function calculateLargestModelNumber(program) {
         max_value = Math.max(max_value, value)
     })
 
+    /*
     let reg = [0, 0, 0, 0]
     let max_value_tmp = max_value
     let num = []
-    while(max_value_tmp) {
-        num.splice(0, 0, max_value_tmp%10)
-        max_value_tmp = Math.floor(max_value_tmp/10)
+    while (max_value_tmp) {
+        num.splice(0, 0, max_value_tmp % 10)
+        max_value_tmp = Math.floor(max_value_tmp / 10)
     }
     run_program(program, num, reg)
     console.log(`max: ${max_value} = ${reg[MEM_Z]}`)
-    
-    return {min: min_value, max: max_value}
+
+    console.log(`max: ${max_value}`)
+    console.log(`min: ${min_value}`)
+     */
+
+    return part1 ? max_value : min_value
 }
 
 function run() {
     console.log("\nDay 24")
 
     let input = loadData('data.txt', true)
-    //console.time("calculateLargestModelNumber")
-    let min_max_result = calculateLargestModelNumber(input, true);
-    //console.timeEnd("calculateLargestModelNumber")
-    console.log(`Part 1: ${min_max_result.max}`)
-                                     // 92412144619891  better but server does not accept
-    assert(min_max_result.max === 92411473615491)
-    console.log(`Part 2: ${min_max_result.min}`)
-    assert(min_max_result.min === 91411143612181)
+
+    let max = calculateLargestModelNumber(input, true);
+    console.log(`Part 1: ${max}`)
+    assert(max === 92967699949891)
+
+    let min = calculateLargestModelNumber(input, false);
+    console.log(`Part 2: ${min}`)
+    assert(min === 91411143612181)
 }
 
 module.exports = {run, loadData, parseData, calculateLargestModelNumber, run_program, MEM_W, MEM_X, MEM_Y, MEM_Z}
