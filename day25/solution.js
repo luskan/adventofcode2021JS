@@ -17,40 +17,20 @@ function parseData(data) {
 }
 
 let try_move_right = (prev_map, map, r, c) => {
-    if (c+1 >= prev_map[r].length) {
-        if (prev_map[r][0] === '.') {
-            map[r][0] = '>'
-            map[r][c] = '.'
-            return true
-        }
+    if (prev_map[r][(c + 1)%prev_map[r].length] === '.') {
+        map[r][(c + 1)%prev_map[r].length] = '>'
+        map[r][c] = '.'
+        return true
     }
-    else {
-        if (prev_map[r][c + 1] === '.') {
-            map[r][c + 1] = '>'
-            map[r][c] = '.'
-            return true
-        }
-    }
-    map[r][c] = prev_map[r][c]
     return false
 }
 
 let try_move_down = (prev_map, map, r, c) => {
-    if (r+1 >= prev_map.length) {
-        if (prev_map[0][c] === '.') {
-            map[0][c] = 'v'
-            map[r][c] = '.'
-            return true
-        }
+    if (prev_map[(r + 1)%prev_map.length][c] === '.') {
+        map[(r + 1)%prev_map.length][c] = 'v'
+        map[r][c] = '.'
+        return true
     }
-    else {
-        if (prev_map[r + 1][c] === '.') {
-            map[r + 1][c] = 'v'
-            map[r][c] = '.'
-            return true
-        }
-    }
-    map[r][c] = prev_map[r][c]
     return false
 }
 
@@ -65,7 +45,7 @@ function calculateStepNumber(input) {
         //    console.log(prev_map[r].join(''))
 
         let move_counter = 0
-        for (let type = 0; type <= 1; ++type) {
+        for (let type of [0, 1]) {
             for (let r = 0; r < prev_map.length; ++r) {
                 for (let c = 0; c < prev_map[r].length; ++c) {
                     if (type === 0 && prev_map[r][c] === '>')
