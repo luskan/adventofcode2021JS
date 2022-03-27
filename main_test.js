@@ -22,6 +22,7 @@ var day21 = require('./day21/test');
 var day22 = require('./day22/test');
 var day23 = require('./day23/test');
 var day24 = require('./day24/test');
+var day25 = require('./day25/test');
 
 day1.runTest()
 day2.runTest()
@@ -47,3 +48,4 @@ day21.runTest()
 day22.runTest()
 day23.runTest()
 day24.runTest()
+day25.runTest()
